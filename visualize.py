@@ -3,24 +3,32 @@ from graphviz import Digraph
 
 
 def load_nodes(node_file, min_level=1, max_level=3):
-    nodes = {'*': []}
+    nodes = {'*': [[], []]}
     with open(node_file, 'r') as f:
         for line in f:
+            node_content = []
             items = line.strip().split('\t')
             node_id = items[0]
             if len(items) > 1:
                 lista = items[1].split(',')[:8]
-                node_content = lista
+                node_content.append(lista)
             else:
-                node_content = []
+                node_content.append([])
+
+            if len(items) > 2:
+                listb = items[2].split(',')[:8]
+                node_content.append(listb)
+            else:
+                node_content.append([])
             nodes[node_id] = node_content
+
     prune_nodes = {}
     for node_id, node_content in nodes.items():
         level = len(node_id.split('/')) - 1
         if not min_level <= level <= max_level:
             continue
         if max_level - min_level > 1 and level == min_level:
-            node_content = []
+            node_content = [[], []]
         prune_nodes[node_id] = node_content
     return prune_nodes
 
@@ -58,11 +66,14 @@ def is_parent(node_a, node_b):
 
 def gen_node_label(node_id, node_content):
     node_name = node_id.split('/')[-1]
-    keywords = '\\n'.join(node_content)
-    if len(node_content) == 0:
+    keywords_poi = '\\n'.join(node_content[0])
+    keywords_word = '\\n'.join(node_content[1])
+    if len(node_content[0]) == 0:
         return node_name
+    elif len(node_content[1]) == 0:
+        return '{%s|%s}' % (node_name, keywords_poi)
     else:
-        return '{%s|%s}' % (node_name, keywords)
+        return '{%s|{%s|%s}}' % (node_name, keywords_poi, keywords_word)
 
 
 def draw(nodes, edges, output_file):
@@ -76,12 +87,18 @@ def draw(nodes, edges, output_file):
 
 def main(node_file, output_file, min_level, max_level):
     nodes = load_nodes(node_file, min_level, max_level)
+    print("成功生成节点")
     edges = gen_edges(nodes)
+    print("成功生成连线")
     draw(nodes, edges, output_file)
+    print("成功生成图片")
 
 
-root_dir = ".\\2019-04-21-16-20-40"
+root_dir = ".\\2019-04-30-09-06-30"
 img_dir = root_dir + '-visualization-graphviz'
 
 prefix_list = ['*', '*/information_retrieval', '*/information_retrieval/web_search']
-main(img_dir + '\\our-overall.txt', img_dir + '\\our-overall', min_level=0, max_level=3)
+
+main(img_dir + '\\our-overall.txt', img_dir + '\\our-overall-1', min_level=0, max_level=1)
+main(img_dir + '\\our-overall.txt', img_dir + '\\our-overall-2', min_level=0, max_level=2)
+main(img_dir + '\\our-overall.txt', img_dir + '\\our-overall-3', min_level=0, max_level=3)

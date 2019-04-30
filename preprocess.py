@@ -35,7 +35,7 @@ def init(data_path):
     return visual_path, visual_path_data
 
 
-def main(node, visual_path_data):
+def resave_file(node, visual_path_data):
     dataframe_list = []
     # walk会返回3个参数，分别是路径，目录list，文件list，你可以按需修改下
     for root, dirs, files in walk(node.nodeSelf):
@@ -47,10 +47,9 @@ def main(node, visual_path_data):
                     '^Unnamed')]  # 删除文件中的index列
 
                 file_name_list = file_path.split("\\")
-                file_name = ''.join(filter(lambda s: isinstance(
-                    s, str) and len(s) <= 5 and s != ".", file_name_list))
-                print(file_name_list)
-                print(file_name)
+                file_name = ''.join(filter(lambda s: isinstance(s, str) and len(
+                    s) == 1 and s != "." or ".csv" in s, file_name_list))
+                print("找到文件 - {}".format(file_name))
                 dataframe.to_csv(os.path.join(
                     visual_path_data, file_name), encoding="utf-8-sig")
 
@@ -67,10 +66,10 @@ def prepare(dirs):
                 file_path_list.append(file_path)
                 file_name = re.split(r'[\\.]\s*', file_path)
                 file_name = ''.join(filter(lambda s: isinstance(s, str) and len(
-                    s) <= 5 and s != "" and s != "data" and s != "csv", file_name))
+                    s) >= 5 and len(s) <= 8, file_name))
                 file_name_list.append(file_name)
 
-                dataframe = pandas.read_csv(file_path)  #
+                dataframe = pandas.read_csv(file_path)
                 dataframe = dataframe.loc[:, ~dataframe.columns.str.contains(
                     '^Unnamed')]  # 删除文件中的index列
                 dataframe_list.append(dataframe)
@@ -78,7 +77,7 @@ def prepare(dirs):
     return file_name_list, dataframe_list
 
 
-def main_2(file_name_list, dataframe_list, visual_path):
+def generate(file_name_list, dataframe_list, visual_path):
     dataframe_num = {}
     for i in range(len(file_name_list)):
         dataframe_num[file_name_list[i]] = i
@@ -90,40 +89,53 @@ def main_2(file_name_list, dataframe_list, visual_path):
             file_name_list_copy = file_name_list[:]
             for i in range(len(file_name_list_copy)):
                 item = file_name_list_copy[i]
-                if len(item) == level:
-                    print(item)
+                id, type = item.split("-")
+                if len(id) == level:
+                    print("正在写入类别为 {} 的 {}".format(id, type))
                     data_df = dataframe_list[dataframe_num[item]].sort_values(
-                        by='poi_porb', ascending=False)
-                    data_arr = np.array(data_df["poi_name"])
+                        by=type+'_porb', ascending=False)
+                    data_arr = np.array(data_df[type+"_name"])
                     data_list = data_arr.tolist()
-                    item_list = list(item)
-                    item_str = "/".join(item_list)
-                    f.write("*/" + item_str + "\t")
+                    id_list = list(id)
+                    id_str = "/".join(id_list)
+                    if type == "poi":
+                        f.write("*/" + id_str + "\t")
+
                     for i in range(len(data_list)):
                         if i >= 10:
                             break
                         if i != 0:
                             f.write(",")
                         f.write(data_list[i])
-                    f.write("\n")
+
+                    if type == "poi":
+                        f.write("\t")
+                    elif type == "word":
+                        f.write("\n")
+
                     file_name_list.remove(item)
             level += 1
 
 
 if __name__ == '__main__':
-    # 设置要可视化的文件夹
-    data_path = ".\\2019-04-21-16-20-40"
+    # 设置要可视化的源文件夹
+    data_path = ".\\2019-04-30-09-06-30"
 
+    # 生成可视化文件夹以及重新保存文件的路径
     visual_path, visual_path_data = init(data_path)
 
     # 创建对象
     root_node = Node(data_path, '')
 
-    main(root_node, visual_path_data)
+    # 重新统一保存结果文件到可视化文件夹中
+    resave_file(root_node, visual_path_data)
 
+    # 读取可视化文件夹结果
     file_name_list, dataframe_list = prepare(visual_path_data)
 
+    # 检验需要可视化的矩阵是否加载成功
     if len(file_name_list) != len(dataframe_list):
         raise Exception("数量不匹配，请检查代码")
 
-    main_2(file_name_list, dataframe_list, visual_path)
+    # 生成可视化所需要的元素，并保存在txt文件中，供visualize.py文件使用
+    generate(file_name_list, dataframe_list, visual_path)
