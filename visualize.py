@@ -94,7 +94,7 @@ def main(node_file, output_file, min_level, max_level):
     print("成功生成图片")
 
 
-root_dir = ".\\2019-04-30-09-06-30"
+root_dir = ".\\2019-04-30-09-54-32"
 img_dir = root_dir + '-visualization-graphviz'
 
 prefix_list = ['*', '*/information_retrieval', '*/information_retrieval/web_search']

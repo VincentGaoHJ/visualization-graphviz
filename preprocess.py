@@ -65,6 +65,7 @@ def prepare(dirs):
                 file_path = root + "\\" + file
                 file_path_list.append(file_path)
                 file_name = re.split(r'[\\.]\s*', file_path)
+                print(file_name)
                 file_name = ''.join(filter(lambda s: isinstance(s, str) and len(
                     s) >= 5 and len(s) <= 8, file_name))
                 file_name_list.append(file_name)
@@ -119,7 +120,7 @@ def generate(file_name_list, dataframe_list, visual_path):
 
 if __name__ == '__main__':
     # 设置要可视化的源文件夹
-    data_path = ".\\2019-04-30-09-06-30"
+    data_path = ".\\2019-04-30-09-54-32"
 
     # 生成可视化文件夹以及重新保存文件的路径
     visual_path, visual_path_data = init(data_path)
