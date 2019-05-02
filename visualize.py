@@ -1,5 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+@Date: Created on 2019/4/28
+@Author: Haojun Gao
+@Description:
+"""
+
 import os
 from graphviz import Digraph
+from preprocess import graphv_prep
 
 
 def load_nodes(node_file, min_level, max_level):
@@ -8,7 +16,12 @@ def load_nodes(node_file, min_level, max_level):
         for line in f:
             node_content = []
             items = line.strip().split('\t')
+
             node_id = items[0]
+
+            if node_id == "*/top":
+                nodes["*"][0] = items[1].split(',')[:4]
+                continue
 
             if len(items) > 1:
                 lista = items[1].split(',')[:4]
@@ -36,8 +49,6 @@ def load_nodes(node_file, min_level, max_level):
 
         if not min_level <= level <= max_level:
             continue
-        if max_level - min_level > 1 and level == min_level:
-            node_content = [[], [], []]
 
         prune_nodes[node_id] = node_content
     return prune_nodes
@@ -77,26 +88,37 @@ def is_parent(node_a, node_b):
 def gen_node_label(node_id, node_content, context_list):
     node_name = node_id.split('/')[-1]
 
+    if node_id == "*":
+        if "feature" in context_list:
+            root_words_1 = node_content[0][0]
+            root_words = '\\n'.join(node_content[0][1:])
+            return '{%s|%s}' % (root_words_1, root_words)
+        else:
+            return node_name
+
     if len(node_content[0]) == 0:
         return node_name
 
     if len(context_list) == 1:
-        if context_list[0] == "agent":
-            keywords = '\\n'.join(node_content[0])
+        if context_list[0] == "feature":
+            keywords_1 = node_content[0][0]
+            keywords = '\\n'.join(node_content[0][1:])
+            return '{%s|%s}' % (keywords_1, keywords)
         if context_list[0] == "poi":
             keywords = '\\n'.join(node_content[1])
+            return '{%s|%s}' % (node_name, keywords)
         if context_list[0] == "word":
             keywords = '\\n'.join(node_content[2])
-
-        return '{%s|%s}' % (node_name, keywords)
+            return '{%s|%s}' % (node_name, keywords)
 
     if len(context_list) == 3:
-
-        keywords_feature = '\\n'.join(node_content[0])
+        keywords_feature_1 = node_content[0][0]
+        keywords_feature = '\\n'.join(node_content[0][1:])
         keywords_poi = '\\n'.join(node_content[1])
         keywords_word = '\\n'.join(node_content[2])
 
-        return '{%s|%s|{%s|%s}}' % (node_name, keywords_feature, keywords_poi, keywords_word)
+        # return '{%s|%s|{%s|%s}}' % (node_name, keywords_feature, keywords_poi, keywords_word)
+        return '{%s|%s|{{POI|%s}|{Feature|%s}}}' % (keywords_feature_1, keywords_feature, keywords_poi, keywords_word)
 
 
 def draw(nodes, edges, output_file, context_list):
@@ -108,6 +130,14 @@ def draw(nodes, edges, output_file, context_list):
     d.render(filename=output_file)
 
 
+def del_files(path):
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            if "." not in name:
+                os.remove(os.path.join(root, name))
+                print("Delete File: " + os.path.join(root, name))
+
+
 def main(node_file, output_file, context_list, min_level, max_level):
     nodes = load_nodes(node_file, min_level, max_level)
     print("成功生成节点")
@@ -117,27 +147,28 @@ def main(node_file, output_file, context_list, min_level, max_level):
     print("成功生成图片")
 
 
-root_dir = ".\\2019-04-30-09-06-30"
-img_dir = root_dir + '-visualization-graphviz'
+if __name__ == '__main__':
+    # 设置要可视化的源文件夹
+    root_dir = ".\\2019-04-30-09-54-32"
 
-prefix_list = ['*', '*/information_retrieval', '*/information_retrieval/web_search']
+    graphv_prep(root_dir)
 
-context_list = ["agent"]
-main(img_dir + '\\results.txt', img_dir + '\\agent-1', context_list, min_level=0, max_level=1)
-main(img_dir + '\\results.txt', img_dir + '\\agent-2', context_list, min_level=0, max_level=2)
-main(img_dir + '\\results.txt', img_dir + '\\agent-3', context_list, min_level=0, max_level=3)
+    img_dir = root_dir + '-visualization-graphviz'
 
-context_list = ["poi"]
-main(img_dir + '\\results.txt', img_dir + '\\poi-1', context_list, min_level=0, max_level=1)
-main(img_dir + '\\results.txt', img_dir + '\\poi-2', context_list, min_level=0, max_level=2)
-main(img_dir + '\\results.txt', img_dir + '\\poi-3', context_list, min_level=0, max_level=3)
+    prefix_list = ['*', '*/information_retrieval', '*/information_retrieval/web_search']
 
-context_list = ["word"]
-main(img_dir + '\\results.txt', img_dir + '\\word-1', context_list, min_level=0, max_level=1)
-main(img_dir + '\\results.txt', img_dir + '\\word-2', context_list, min_level=0, max_level=2)
-main(img_dir + '\\results.txt', img_dir + '\\word-3', context_list, min_level=0, max_level=3)
+    context_list = [["feature"], ["poi"], ["word"], ["name", "poi", "word"]]
+    level_list = [1, 2, 3]
 
-context_list = ["name", "poi", "word"]
-main(img_dir + '\\results.txt', img_dir + '\\our-overall-1', context_list, min_level=0, max_level=1)
-main(img_dir + '\\results.txt', img_dir + '\\our-overall-2', context_list, min_level=0, max_level=2)
-main(img_dir + '\\results.txt', img_dir + '\\our-overall-3', context_list, min_level=0, max_level=3)
+    for context in context_list:
+        for level in level_list:
+            print("正在写入 {} 的图片，包含级别为 {} 级".format(str(context), str(level)))
+            if len(context) == 1:
+                main(img_dir + '\\results.txt', img_dir + '\\' + root_dir[-5:] + '-' + context[0] + '-' + str(level),
+                     context, min_level=0, max_level=level)
+            else:
+                main(img_dir + '\\results.txt', img_dir + '\\' + root_dir[-5:] + '-overall-' + str(level),
+                     context, min_level=0, max_level=level)
+
+    # 删除中间文件
+    del_files(img_dir)

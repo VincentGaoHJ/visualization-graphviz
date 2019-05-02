@@ -66,7 +66,7 @@ def prepare(dirs):
                 file_path_list.append(file_path)
                 file_name = re.split(r'[\\.]\s*', file_path)
                 file_name = ''.join(filter(lambda s: isinstance(s, str) and len(
-                    s) >= 5 and len(s) <= 10, file_name))
+                    s) >= 5 and len(s) <= 15, file_name))
                 print("读取文件 - {}".format(file_name))
                 file_name_list.append(file_name)
 
@@ -95,21 +95,22 @@ def generate(file_name_list, dataframe_list, visual_path):
 
                 if len(id) == level:
                     print("正在写入类别为 {} 的 {}".format(id, type))
-
-                    if type != "agent":
+                    if type != "feature":
                         data_df = dataframe_list[dataframe_num[item]].sort_values(
-                            by=type+'_porb', ascending=False)
-                        data_arr = np.array(data_df[type+"_name"])
+                            by=type + '_porb', ascending=False)
+                        data_arr = np.array(data_df[type + "_name"])
                     else:
                         data_df = dataframe_list[dataframe_num[item]]
-                        data_arr = np.array(data_df[type + " name"])
-                        print(data_arr)
+                        data_arr = np.array(data_df[type + "_name"])
                     data_list = data_arr.tolist()
-                    id_list = list(id)
-                    id_str = "/".join(id_list)
+                    if id == "top":
+                        id_str = id
+                    else:
+                        id_list = list(id)
+                        id_str = "/".join(id_list)
 
                     # 生成节点头所需的内容
-                    if type == "agent":
+                    if type == "feature":
                         f.write("*/" + id_str + "\t")
 
                     for i in range(len(data_list)):
@@ -119,7 +120,7 @@ def generate(file_name_list, dataframe_list, visual_path):
                             f.write(",")
                         f.write(data_list[i])
 
-                    if type == "agent":
+                    if type == "feature":
                         f.write("\t")
                     if type == "poi":
                         f.write("\t")
@@ -130,10 +131,7 @@ def generate(file_name_list, dataframe_list, visual_path):
             level += 1
 
 
-if __name__ == '__main__':
-    # 设置要可视化的源文件夹
-    data_path = ".\\2019-04-30-09-06-30"
-
+def graphv_prep(data_path):
     # 生成可视化文件夹以及重新保存文件的路径
     visual_path, visual_path_data = init(data_path)
 
@@ -144,7 +142,7 @@ if __name__ == '__main__':
     resave_file(root_node, visual_path_data)
 
     # 读取可视化文件夹结果
-    file_name_list, dataframe_list = prepare(visual_path_data)
+    file_name_list, dataframe_list = prepare(visual_path)
 
     # 检验需要可视化的矩阵是否加载成功
     if len(file_name_list) != len(dataframe_list):
@@ -152,3 +150,10 @@ if __name__ == '__main__':
 
     # 生成可视化所需要的元素，并保存在txt文件中，供visualize.py文件使用
     generate(file_name_list, dataframe_list, visual_path)
+
+
+if __name__ == '__main__':
+    # 设置要可视化的源文件夹
+    data_path = ".\\2019-04-30-09-54-32"
+
+    graphv_prep(data_path)
