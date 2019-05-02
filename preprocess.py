@@ -65,9 +65,9 @@ def prepare(dirs):
                 file_path = root + "\\" + file
                 file_path_list.append(file_path)
                 file_name = re.split(r'[\\.]\s*', file_path)
-                print(file_name)
                 file_name = ''.join(filter(lambda s: isinstance(s, str) and len(
-                    s) >= 5 and len(s) <= 8, file_name))
+                    s) >= 5 and len(s) <= 10, file_name))
+                print("读取文件 - {}".format(file_name))
                 file_name_list.append(file_name)
 
                 dataframe = pandas.read_csv(file_path)
@@ -85,21 +85,31 @@ def generate(file_name_list, dataframe_list, visual_path):
 
     # 按照层级关系来生成最终表达结构中有的内容，先生成第一层，再生成第二层，以此类推
     level = 1
-    with open(visual_path + '\\our-overall.txt', 'w') as f:
+    with open(visual_path + '\\results.txt', 'w') as f:
         while file_name_list != []:
             file_name_list_copy = file_name_list[:]
             for i in range(len(file_name_list_copy)):
                 item = file_name_list_copy[i]
+
                 id, type = item.split("-")
+
                 if len(id) == level:
                     print("正在写入类别为 {} 的 {}".format(id, type))
-                    data_df = dataframe_list[dataframe_num[item]].sort_values(
-                        by=type+'_porb', ascending=False)
-                    data_arr = np.array(data_df[type+"_name"])
+
+                    if type != "agent":
+                        data_df = dataframe_list[dataframe_num[item]].sort_values(
+                            by=type+'_porb', ascending=False)
+                        data_arr = np.array(data_df[type+"_name"])
+                    else:
+                        data_df = dataframe_list[dataframe_num[item]]
+                        data_arr = np.array(data_df[type + " name"])
+                        print(data_arr)
                     data_list = data_arr.tolist()
                     id_list = list(id)
                     id_str = "/".join(id_list)
-                    if type == "poi":
+
+                    # 生成节点头所需的内容
+                    if type == "agent":
                         f.write("*/" + id_str + "\t")
 
                     for i in range(len(data_list)):
@@ -109,6 +119,8 @@ def generate(file_name_list, dataframe_list, visual_path):
                             f.write(",")
                         f.write(data_list[i])
 
+                    if type == "agent":
+                        f.write("\t")
                     if type == "poi":
                         f.write("\t")
                     elif type == "word":
@@ -120,7 +132,7 @@ def generate(file_name_list, dataframe_list, visual_path):
 
 if __name__ == '__main__':
     # 设置要可视化的源文件夹
-    data_path = ".\\2019-04-30-09-54-32"
+    data_path = ".\\2019-04-30-09-06-30"
 
     # 生成可视化文件夹以及重新保存文件的路径
     visual_path, visual_path_data = init(data_path)
