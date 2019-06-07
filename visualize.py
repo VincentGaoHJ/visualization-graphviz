@@ -7,6 +7,9 @@
 
 import os
 from graphviz import Digraph
+from textrank import textrank
+from postprune import postPrune
+from generate import generatetxt
 from preprocess import graphv_prep
 
 
@@ -138,7 +141,7 @@ def del_files(path):
                 print("Delete File: " + os.path.join(root, name))
 
 
-def main(node_file, output_file, context_list, min_level, max_level):
+def draw_graph(node_file, output_file, context_list, min_level, max_level):
     nodes = load_nodes(node_file, min_level, max_level)
     print("成功生成节点")
     edges = gen_edges(nodes)
@@ -147,28 +150,42 @@ def main(node_file, output_file, context_list, min_level, max_level):
     print("成功生成图片")
 
 
-if __name__ == '__main__':
-    # 设置要可视化的源文件夹
-    root_dir = ".\\2019-04-30-09-54-32"
+def graphviz(root_dir):
+    img_dir = root_dir + '-result'
 
-    graphv_prep(root_dir)
-
-    img_dir = root_dir + '-visualization-graphviz'
+    data_root = ["data", "dataPrune"]
 
     prefix_list = ['*', '*/information_retrieval', '*/information_retrieval/web_search']
 
-    context_list = [["feature"], ["poi"], ["word"], ["name", "poi", "word"]]
-    level_list = [1, 2, 3]
+    # context_list = [["feature"], ["poi"], ["word"], ["feature", "poi", "word"]]
+    # level_list = [1, 2, 3]
 
-    for context in context_list:
-        for level in level_list:
-            print("正在写入 {} 的图片，包含级别为 {} 级".format(str(context), str(level)))
-            if len(context) == 1:
-                main(img_dir + '\\results.txt', img_dir + '\\' + root_dir[-5:] + '-' + context[0] + '-' + str(level),
-                     context, min_level=0, max_level=level)
-            else:
-                main(img_dir + '\\results.txt', img_dir + '\\' + root_dir[-5:] + '-overall-' + str(level),
-                     context, min_level=0, max_level=level)
+    context_list = [["feature", "poi", "word"]]
+    level_list = [3]
+
+    for data_dir in data_root:
+        for context in context_list:
+            for level in level_list:
+                print("正在写入 {} 的图片，包含级别为 {} 级".format(str(context), str(level)))
+                if len(context) == 1:
+                    draw_graph(img_dir + '\\' + data_dir + '\\results.txt',
+                               img_dir + '\\' + root_dir[7:-6] + '-' + context[0] + '-' + str(level) + data_dir[4:],
+                               context, min_level=0, max_level=level)
+                else:
+                    draw_graph(img_dir + '\\' + data_dir + '\\results.txt',
+                               img_dir + '\\' + root_dir[7:-6] + '-overall-' + str(level) + data_dir[4:],
+                               context, min_level=0, max_level=level)
 
     # 删除中间文件
     del_files(img_dir)
+
+
+if __name__ == '__main__':
+    # 设置要可视化的源文件夹
+    root_dir = ".\\2019-06-02-18-32-08"
+
+    textrank(root_dir)     # 对每一个节点生成 text rank 的结果并保存
+    graphv_prep(root_dir)  # 将原始数据文件中有用的结果文件移动到可视化文件夹中
+    postPrune(root_dir)    # 对结果进行后剪枝，并且保存后剪枝结果
+    generatetxt(root_dir)  # 将后剪枝前后的结果生成绘图准备文件
+    graphviz(root_dir)     # 利用 graphviz 绘图
