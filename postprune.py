@@ -38,7 +38,6 @@ def Getdirnext(dirname_list, f=0):
         for i in range(5):
             if name != []:
                 newdir = name + os.path.sep + '%d' % i
-                #                print(newdir)
                 if os.path.exists(newdir):
                     f = 1
                     dirnext.append(newdir)
@@ -93,15 +92,7 @@ def Getmatrix_dis(ma):
 
     # 开方得到欧式距离
     ma_dis = np.sqrt(SqED)
-    #    print('ma_mean', ma_mean.shape)
-    #    print('vecProd', vecProd.shape)
-    #    print('Sq_ma_mean', Sq_ma_mean.shape)
-    #    print('sum_Sq_ma_mean_i', sum_Sq_ma_mean_i)
-    #    print('sum_Sq_ma_mean', sum_Sq_ma_mean.shape)
-    #    print('sum_Sq_ma', sum_Sq_ma.shape)
-    #    print('SqED', SqED.shape)
-    #    print('ma_dis', ma_dis.shape)
-
+    
     return ma_dis, ma.shape
 
 
@@ -126,55 +117,40 @@ def Getlist(data, k, U):
     return sub_list
 
 
-def GetSE(X, U, level, alpha=0.1, beta=0.1):
+def GetSE(X, U, sub = 5, alpha = 4):
     # 获得全部的距离
     X_dis, X_shape = Getmatrix_dis(X)
     X_dis_list = X_dis.tolist()[0]
-    X_all = X_shape[0]
-
-    #    X_dis_list = Getnorm(X_dis_list)
-
-    X_dis_mean = sum(X_dis_list) / len(X_dis_list)
-    X_SE = [(i - X_dis_mean) ** 2 for i in X_dis_list]
-    X_SE_mean = sum(X_SE) / len(X_SE)
-
+    
+    # 总距离
+    X_dis_sum = sum(X_dis_list)
+    
     # 获得子矩阵索引
     sub_list = Getlist(X, 5, U)
-
+    
     sub_SE = []
     for sub_list_ in sub_list:
         sub_data = X[sub_list_[0]]
         for i in sub_list_[1:]:
             sub_data = sp.vstack((sub_data, X[i]))
-        #            print(sub_data.shape)
-
+            
         # 获得子矩阵的全部的距离
         sub_dis, sub_shape = Getmatrix_dis(sub_data)
         sub_dis_list = sub_dis.tolist()[0]
-        sub_all = sub_shape[0]
-        #        sub_dis_list = Getnorm(sub_dis_list)
-
-        # 平均距离
-        sub_dis_mean = sum(sub_dis_list) / len(sub_dis_list)
-        #        print('平均距离： ', sub_dis_mean)
-
-        # 距离的离散程度
-        sub_dis_SE = [(i - sub_dis_mean) ** 2 for i in sub_dis_list]
-        sub_dis_SE_mean = sum(sub_dis_SE) / len(sub_dis_SE)
-        sub_SE.append((sub_all / X_all) * sub_dis_SE_mean)
-    #        print('sub shape: ', sub_shape)
-    #        print('距离的离散程度： ', sub_dis_SE_mean)
-
-    sub_SSE = sum(sub_SE)
-
-    loss = alpha * (X_SE_mean - sub_SSE) - beta * level
-
+        
+        # 总距离
+        sub_dis_sum = sum(sub_dis_list)
+        sub_SE.append( sub_dis_sum )
+    
+    sub_SSE = sum(sub_SE)    
+    loss = (X_dis_sum - sub_SSE) - alpha * sub
+    
     if loss < 0:
         result = False
     else:
         result = True
-
-    return X_SE_mean, sub_SSE, loss, result, X_SE_mean - sub_SSE
+            
+    return X_dis_sum, sub_SSE, loss, result, X_dis_sum - sub_SSE, X_shape
 
 
 def postPrune(data_path):
@@ -183,7 +159,7 @@ def postPrune(data_path):
     print("[PostPrune] 待进行后剪枝的结果: {}".format(data_path))
     print("[PostPrune] 后剪枝后结果的保存文件夹: {} ".format(path_datacut))
 
-    U_name = '\\model\\501_U_sp.npz'
+    U_name = '\\model\\1001_U_sp.npz'
     X_name = '\\data\\buchai_POI_matrix.npz'
 
     dirnext = [data_path]
@@ -194,9 +170,7 @@ def postPrune(data_path):
         dir_all.append(dirnext)
         #    print(dirnext)
         dirnext, f = Getdirnext(dirnext)
-
-    name_seq = [0, 1, 2, 3, 4]
-
+    
     # 得到所有的文件夹目录
     data_path_text = data_path.split('\\')
 
@@ -220,7 +194,6 @@ def postPrune(data_path):
         CZi = []
         LOSSi = []
         shangi = []
-        xiai = []
         dir_ = dir_all[i]
         for file in dir_:
             if file != []:
@@ -228,20 +201,34 @@ def postPrune(data_path):
                 X_file = file + X_name
                 U = sp.load_npz(U_file)
                 X = sp.load_npz(X_file)
-                X_SE_mean, sub_SSE, loss, result, chazhi = GetSE(X, U, i, alpha=0.1, beta=0.15)
-                SSE_alli.append(['X_SE_mean:', X_SE_mean, 'sub_SSE:',
+                X_SE_sum, sub_SSE, loss, result, chazhi, m_shape = GetSE(X, U)
+                SSE_alli.append(['X_SE_sum:', X_SE_sum, 'sub_SSE:',
                                  sub_SSE, 'loss', loss, 'result', result])
                 CZi.append(chazhi)
                 LOSSi.append(loss)
                 SSE_resulti.append(result)
-                shangi.append((X_SE_mean, sub_SSE))
+                shangi.append((X_SE_sum, sub_SSE))
 
         CZ.append(CZi)
         LOSS.append(LOSSi)
         shang.append(shangi)
         SSE_all.append(SSE_alli)
         SSE_result.append(SSE_resulti)
-
+    
+    # 找到存放所有 csv文件的文件夹
+    data_csv_path = path_datacut
+    
+    csv_all = []
+    for file_csv in os.listdir(data_csv_path):
+        csv_all.append(file_csv)
+    csv_all.remove('results.txt')
+    
+    csv_name = []
+    for file_csv in csv_all:
+        name = file_csv.split('-')
+        csv_name.append(name[0])
+    
+    filename_remove = []
     for i in range(len(SSE_result)):
         result = SSE_result[i]
         for j in range(len(result)):
@@ -251,16 +238,27 @@ def postPrune(data_path):
             else:
                 sub_file = ''.join(get_filename)
             resulti = result[j]
+            
             if resulti != True:
-                for n in range(5):
-                    filename = path_datacut + os.path.sep + sub_file + str(n)
-                    os.remove(filename + '-feature.csv')
-                    os.remove(filename + '-word.csv')
-                    os.remove(filename + '-poi.csv')
+                length = len(sub_file)
+                for t in range(len(csv_name)):
+                    name = csv_name[t]
+                    if sub_file == name[:length]:
+                        if sub_file != name:
+                            print(name)
+                            filename_sub = data_csv_path + os.path.sep + name + '-feature.csv'
+                            filename_sub_word = data_csv_path + os.path.sep+ name + '-word.csv'
+                            filename_sub_poi = data_csv_path + os.path.sep+ name + '-poi.csv'
+                            if os.path.exists(filename_sub):
+                                os.remove(filename_sub)
+                                os.remove(filename_sub_word)
+                                os.remove(filename_sub_poi)
+                                filename_remove.append(filename_sub)
+#                                print('删除', name)
 
 
 if __name__ == '__main__':
     # 设置要可视化的源文件夹
-    data_path = "2019-06-02-18-32-08"
+    data_path = '2019-06-08-18-45-01'
 
     postPrune(data_path)

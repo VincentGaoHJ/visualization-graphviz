@@ -154,6 +154,7 @@ def graphviz(root_dir):
     img_dir = root_dir + '-result'
 
     data_root = ["data", "dataPrune"]
+    # data_root = ["data"]
 
     prefix_list = ['*', '*/information_retrieval', '*/information_retrieval/web_search']
 
@@ -161,7 +162,7 @@ def graphviz(root_dir):
     # level_list = [1, 2, 3]
 
     context_list = [["feature", "poi", "word"]]
-    level_list = [3]
+    level_list = [4]
 
     for data_dir in data_root:
         for context in context_list:
@@ -182,7 +183,7 @@ def graphviz(root_dir):
 
 if __name__ == '__main__':
     # 设置要可视化的源文件夹
-    root_dir = ".\\2019-06-02-18-32-08"
+    root_dir = ".\\2019-06-08-18-45-01"
 
     textrank(root_dir)     # 对每一个节点生成 text rank 的结果并保存
     graphv_prep(root_dir)  # 将原始数据文件中有用的结果文件移动到可视化文件夹中

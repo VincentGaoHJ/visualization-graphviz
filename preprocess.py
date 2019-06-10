@@ -65,6 +65,6 @@ def graphv_prep(data_path):
 
 if __name__ == '__main__':
     # 设置要可视化的源文件夹
-    data_path = ".\\2019-06-02-18-32-08"
+    data_path = ".\\2019-06-08-18-45-01"
 
     graphv_prep(data_path)

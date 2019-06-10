@@ -95,6 +95,7 @@ def generatetxt(data_path):
     result_path = data_path + "-result"
 
     data_list = ["data", "dataPrune"]
+    # data_list = ["data"]
 
     for item in data_list:
         path = os.path.join(result_path, item)
@@ -113,6 +114,6 @@ def generatetxt(data_path):
 
 if __name__ == '__main__':
     # 设置要可视化的源文件夹
-    data_path = ".\\2019-06-02-18-32-08"
+    data_path = ".\\2019-06-08-18-45-01"
 
     generatetxt(data_path)

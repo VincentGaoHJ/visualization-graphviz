@@ -5,14 +5,19 @@ Created on Tue Apr 30 09:33:17 2019
 @author: WENDY
 """
 
-from jieba import analyse
 import os
 import csv
 import pandas as pd
+from jieba import analyse
 
 
-# 准备工作
 def init(data_path):
+    """
+    准备工作
+    :param data_path: 要 Text Rank 的数据文件夹
+    :return:
+        visual_path_data：生成的 Text Rank 结果的保存文件夹
+    """
     if not os.path.exists(data_path):
         raise Exception("找不到要可视化数据的文件夹")
 
@@ -24,19 +29,30 @@ def init(data_path):
     if not os.path.exists(visual_path_data):
         os.makedirs(visual_path_data)
 
-    return visual_path, visual_path_data
+    return visual_path_data
 
 
-# 使用 textrank提取关键词
 def textrank_extract(text, keyword_num=200):
+    """
+    使用 text rank 提取关键词
+    :param text: 文本
+    :param keyword_num: 关键词数量
+    :return: keywords [关键词]
+    """
     textrank = analyse.textrank
     keywords = textrank(text, keyword_num, withWeight=True)
     # 输出抽取出的关键词
     return keywords
 
 
-# 比较 textrank值前后的变化
 def Comparetextrank(data1, data2):
+    """
+    # 比较 text rank 值前后的变化
+    :param data1: 父节点 text rank 结果
+    :param data2: 子节点 text rank 结果
+    :return:
+        data_all: 对比结果
+    """
     dict1 = [name[0] for name in data1]
     dict2 = [name[0] for name in data2]
     dict_all = list(set(dict1).intersection(set(dict2)))
@@ -55,16 +71,28 @@ def Comparetextrank(data1, data2):
     return data_all
 
 
-# 将 poi的评论拼接在一起
 def Getallcom(POI_comment):
+    """
+    将 poi 的评论拼接在一起
+    :param POI_comment: 带拼接的评论
+    :return:
+        all_com: 拼接后的评论
+    """
     all_com = ''
     for i in POI_comment:
         all_com = all_com + i + '/'
     return all_com
 
 
-# 对每一个文档，得到关键词集合
 def geti(dirname, r, com_name, com):
+    """
+    对每一个文档，得到关键词集合
+    :param dirname:
+    :param r:
+    :param com_name:
+    :param com:
+    :return:
+    """
     print(dirname)
     resultpath = dirname + os.path.sep + 'result\\%d-poi.csv' % r
     if dirname == []:
@@ -91,8 +119,13 @@ def geti(dirname, r, com_name, com):
     return keywords
 
 
-# 获得所有文件夹目录
 def Getdirnext(dirname_list, f=0):
+    """
+    获得所有文件夹目录
+    :param dirname_list:
+    :param f:
+    :return:
+    """
     dirnext = []
     for name in dirname_list:
         for i in range(5):
@@ -107,24 +140,27 @@ def Getdirnext(dirname_list, f=0):
     return dirnext, f
 
 
-# 根据 get_dir 的结果，来求得对比序列的索引
-def Getcompare(get_dir_str):
-    m = len(get_dir_str)
-    total = 0
-    for i in range(m):
-        total = total + int(get_dir_str[i]) * 5 ** (m - i - 1)
-    return total
+def Getcompare(dir_past, dir_next_sub):
+    """
+    根据 get_dir 的结果，来求得对比序列的索引
+    :param dir_past:
+    :param dir_next_sub:
+    :return:
+    """
+    dir_next_sub_i = dir_next_sub[:-1]
+    index = dir_past.index(dir_next_sub_i)
+    dir_next_sub_ind = index * 5 + int(dir_next_sub[-1])
+
+    return dir_next_sub_ind
 
 
 def textrank(nowdir):
-
     # 设置要保存的文件夹路径
-    visual_path, savedir = init(nowdir)
+    savedir = init(nowdir)
     print("[TextRank] 待生成TextRank结果的初始文件夹: {}".format(nowdir))
     print("[TextRank] 生成的TextRank结果的保存文件夹: {} ".format(savedir))
 
     # 在没有经过筛选的文档中提取关键词
-    print("[TextRank] 在没有经过筛选的文档中提取关键词")
     with open('POI863_flag.txt', 'r') as f:
         com = f.read().split('\n')
         del com[-1]
@@ -148,8 +184,6 @@ def textrank(nowdir):
         print(dirnext)
         dirnext, f = Getdirnext(dirnext)
 
-    print(dirnext, f)
-    print(dir_all)
     name_seq = [0, 1, 2, 3, 4]
 
     # 得到所有关键词的列表 data
@@ -162,10 +196,8 @@ def textrank(nowdir):
                     data_sub.append(geti(dirlist_, i, com_name, com))
         data.append(data_sub)
 
-    print(data)
     # 得到所有的文件夹目录
     nowdir_text = nowdir.split('\\')
-    print(nowdir_text)
 
     get_dir = []
     for sub_dir in dir_all:
@@ -176,14 +208,12 @@ def textrank(nowdir):
                 get_dir_sub.append([i for i in sub_dir_text if i not in nowdir_text])
         get_dir.append(get_dir_sub)
 
-    print(get_dir)
-
     # 生成对比的序列
-    print("[TextRank] 生成对比的序列")
     for l in range(len(get_dir)):
         print('第%d层' % l)
         get_dir_sub = get_dir[l]
         print(get_dir_sub)
+
         if get_dir_sub == [[]]:
             K_csv_sub = []
             for i in name_seq:
@@ -194,15 +224,18 @@ def textrank(nowdir):
         else:
             K_csv_sub_total = []
             for n in range(len(get_dir_sub)):
-                # print(n)
+                #            print(n)
                 get_dir_sub_ = get_dir_sub[n]
                 K_csv_sub = []
-                dir_ind = Getcompare(get_dir_sub_)
+
+                # 得到上一层的对比列表的索引
+                dir_past_ind = Getcompare(get_dir[l - 1], get_dir_sub_)
 
                 # 取得对比列表
+                data_past = data[l - 1][dir_past_ind]
                 data_next = data[l][n * 5: (n + 1) * 5]
                 for j in name_seq:
-                    result = Comparetextrank(data[l - 1][dir_ind], data_next[j])[0:20]
+                    result = Comparetextrank(data_past, data_next[j])[0:20]
                     K_csv_sub.append([name[0] for name in result[0:20]])
                 K_csv_sub_total.append(K_csv_sub)
             K_csv.append(K_csv_sub_total)
@@ -210,7 +243,6 @@ def textrank(nowdir):
     # 保存所有的对比结果
     print("[TextRank] 保存所有的对比结果")
     write = pd.DataFrame({'feature_name': K_csv[0]})
-
     write.to_csv(os.path.join(savedir, "top-feature.csv"), encoding="utf-8-sig")
 
     for n in range(len(K_csv)):
@@ -219,7 +251,6 @@ def textrank(nowdir):
             write = pd.DataFrame({'feature_name': kn})
             write.to_csv(os.path.join(savedir, "top-feature.csv"), encoding="utf-8-sig")
         elif n == 1:
-            print(n)
             kn = K_csv[n]
             for name in name_seq:
                 kni = kn[name]
@@ -227,7 +258,6 @@ def textrank(nowdir):
                 filename = '%d-feature.csv' % name
                 write.to_csv(os.path.join(savedir, filename), encoding="utf-8-sig")
         else:
-            print(n)
             kn = K_csv[n]
             for i in range(len(get_dir[n - 1])):
                 dirname = get_dir[n - 1][i]
@@ -238,9 +268,10 @@ def textrank(nowdir):
                     write = pd.DataFrame({'feature_name': kni[name]})
                     filename = '%s-feature.csv' % name_new
                     write.to_csv(os.path.join(savedir, filename), encoding="utf-8-sig")
+        print('第%d层级完成' % n)
 
 
 if __name__ == '__main__':
     # 设置要可视化的源文件夹
-    data_path = "2019-06-02-18-32-08"
+    data_path = "2019-06-08-18-45-01"
     textrank(data_path)
